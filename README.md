@@ -4,7 +4,7 @@ This repository demonstrates a distributed `iii` worker mesh deployed across thr
 
 | Worker             | Language   | Function                       | Current behavior                                                                                 |
 | ------------------ | ---------- | ------------------------------ | --------------------------------------------------------------------------------------------- |
-| `inference-worker` | Python     | `inference::run_inference`     | Calls Ollama at `OLLAMA_URL` and returns the raw model output string.                             |
+| `inference-worker` | Python     | `inference::run_inference`     | Calls Ollama at `OLLAMA_URL` (gemma3:1b) and returns the raw model output string.                 |
 | `caller-worker`    | TypeScript | `inference::get_response`      | Calls `inference::run_inference` and forwards the response payload.                              |
 | `caller-worker`    | TypeScript | `http::run_inference_over_http` | HTTP trigger bound to `POST /v1/chat/completions`; forwards the request body to `get_response`.   |
 
@@ -56,6 +56,8 @@ Internet
 - Private VMs reach the internet via Cloud NAT for package installs only
 - Internal communication happens over the private subnet (10.0.0.0/24)
 
+Note: both caller-vm and inference-vm must set `III_URL=ws://10.0.0.2:49134` to reach the engine-vm.
+
 ## Deploy with Terraform
 
 ```bash
@@ -72,7 +74,7 @@ curl -X POST http://<engine-public-ip>:3111/v1/chat/completions \
   -d '{"messages": [{"role": "user", "content": "What is 2 + 2?"}]}'
 ```
 
-Expected response:
+Expected response (character-indexed JSON):
 ```json
 {"result": {"0":"2","1":" ","2":"+","3":" ","4":"2","5":" ","6":"=","7":" ","8":"4"}}
 ```

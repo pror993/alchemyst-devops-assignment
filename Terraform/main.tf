@@ -103,6 +103,7 @@ resource "google_compute_instance" "engine_vm" {
 
   network_interface {
     subnetwork = google_compute_subnetwork.iii_subnet.id
+    network_ip = "10.0.0.2"
     access_config {}  # gives it a public IP
   }
 }
@@ -121,6 +122,7 @@ resource "google_compute_instance" "caller_vm" {
 
   network_interface {
     subnetwork = google_compute_subnetwork.iii_subnet.id
+    network_ip = "10.0.0.3"
     # no access_config = no public IP
   }
 }
@@ -140,6 +142,7 @@ resource "google_compute_instance" "inference_vm" {
 
   network_interface {
     subnetwork = google_compute_subnetwork.iii_subnet.id
+    network_ip = "10.0.0.4"
     # no access_config = no public IP
   }
 }

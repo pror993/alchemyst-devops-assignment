@@ -40,9 +40,3 @@ workers:
         - PUT
         - DELETE
         - OPTIONS
-  - name: inference-worker
-    worker_path: /home/hpdev/hiring/may-2026/devops/quickstart/workers/inference-worker
-  - name: caller-worker
-    worker_path: /home/hpdev/hiring/may-2026/devops/quickstart/workers/caller-worker
-  - name: math-worker
-    worker_path: /home/hpdev/hiring/may-2026/devops/quickstart/workers/inference-worker

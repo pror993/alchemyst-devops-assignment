@@ -1,6 +1,6 @@
 import { Logger, registerWorker } from 'iii-sdk';
 
-const iii = registerWorker(process.env.III_URL ?? 'ws://localhost:49134');
+const iii = registerWorker(process.env.III_URL ?? 'ws://10.0.0.2:49134');
 const logger = new Logger();
 
 iii.registerFunction(
@@ -14,7 +14,7 @@ iii.registerFunction(
     });
 
     return {
-      ...result,
+      result,
       success:
         "You've connected two workers and they're interoperating seamlessly, now let's add a few more workers to expand this project's functionality.",
     };

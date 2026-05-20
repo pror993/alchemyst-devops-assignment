@@ -4,9 +4,14 @@ from typing import Any, Dict, List
 
 from iii import InitOptions, Logger, register_worker
 
+iii_url = os.environ.get(
+    "III_URL",
+    "ws://10.0.0.2:49134",  # Default assumes Terraform static private IPs.
+)
+
 iii = register_worker(
-    os.environ.get("III_URL", "ws://10.0.0.2:49134"),
-    InitOptions(worker_name="math-worker"),
+    iii_url,
+    InitOptions(worker_name="inference-worker"),
 )
 logger = Logger()
 
