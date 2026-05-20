@@ -28,7 +28,7 @@ workers:
   - name: iii-http
     config:
       port: 3111
-      host: 127.0.0.1
+      host: 0.0.0.0
       default_timeout: 30000
       concurrency_request_limit: 1024
       cors:
