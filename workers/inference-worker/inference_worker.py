@@ -1,44 +1,39 @@
 import os
+import httpx
 from typing import Any, Dict, List
 
 from iii import InitOptions, Logger, register_worker
-from llama_cpp import Llama
-from huggingface_hub import hf_hub_download
 
 iii = register_worker(
-    os.environ.get("III_URL", "ws://localhost:49134"),
+    os.environ.get("III_URL", "ws://10.0.0.2:49134"),
     InitOptions(worker_name="math-worker"),
 )
 logger = Logger()
 
-# Download the GGUF model from Hugging Face
-model_path = hf_hub_download(
-    repo_id="ggml-org/gemma-3-270m-GGUF",
-    filename="gemma-3-270m-Q8_0.gguf"
-)
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:1b")
 
-# Load the model using llama-cpp
-model = Llama(
-    model_path=model_path,
-    n_ctx=2048,      # context window size
-    n_threads=2,     # number of CPU threads
-    verbose=False
-)
+logger.info(f"Inference worker ready — model: {MODEL}, ollama: {OLLAMA_URL}")
 
-logger.info("Gemma model loaded successfully")
 
 def run_inference_handler(payload: Dict[str, str | List[Dict[str, Any]]]) -> str:
     messages = payload.get("messages", [])
 
-    # llama-cpp handles chat formatting natively
-    response = model.create_chat_completion(
-        messages=messages,
-        max_tokens=512,
+    response = httpx.post(
+        f"{OLLAMA_URL}/api/chat",
+        json={
+            "model": MODEL,
+            "messages": messages,
+            "stream": False,
+        },
+        timeout=120.0,
     )
+    response.raise_for_status()
 
-    result = response["choices"][0]["message"]["content"]
+    result = response.json()["message"]["content"]
     print(result)
     return result
+
 
 iii.register_function("inference::run_inference", run_inference_handler)
 
