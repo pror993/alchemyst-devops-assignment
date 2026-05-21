@@ -211,14 +211,72 @@ resource "google_compute_instance" "inference_vm" {
     fi
 
     if command -v systemctl >/dev/null 2>&1; then
-      systemctl enable --now ollama || true
-    fi
+      cat >/usr/local/bin/ollama-pull.sh <<'EOF'
+    #!/usr/bin/env bash
+    set -euo pipefail
 
-    if ! pgrep -f "ollama serve" >/dev/null 2>&1; then
-      nohup ollama serve > /var/log/ollama.log 2>&1 &
-    fi
+    OLLAMA_READY_URL="http://127.0.0.1:11434/api/tags"
+    OLLAMA_WAIT_SECONDS=300
+    OLLAMA_WAIT_INTERVAL=2
+    elapsed=0
+
+    until curl -sf "$OLLAMA_READY_URL" >/dev/null; do
+      if [[ $elapsed -ge $OLLAMA_WAIT_SECONDS ]]; then
+        echo "Ollama did not become ready in ${OLLAMA_WAIT_SECONDS}s" >&2
+        exit 1
+      fi
+      sleep "$OLLAMA_WAIT_INTERVAL"
+      elapsed=$((elapsed + OLLAMA_WAIT_INTERVAL))
+    done
 
     ollama pull gemma3:1b
+EOF
+
+      chmod 0755 /usr/local/bin/ollama-pull.sh
+
+      cat >/etc/systemd/system/ollama-pull.service <<'EOF'
+    [Unit]
+    Description=Pull Ollama model after service is ready
+    After=network-online.target ollama.service
+    Wants=network-online.target
+    Requires=ollama.service
+
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/bin/ollama-pull.sh
+    TimeoutStartSec=360
+
+    [Install]
+    WantedBy=multi-user.target
+EOF
+
+      systemctl daemon-reload
+      systemctl enable --now ollama || true
+      systemctl enable --now ollama-pull.service || true
+    else
+      if ! pgrep -f "ollama serve" >/dev/null 2>&1; then
+        nohup ollama serve > /var/log/ollama.log 2>&1 &
+      fi
+
+      OLLAMA_READY_URL="http://127.0.0.1:11434/api/tags"
+      OLLAMA_WAIT_SECONDS=120
+      OLLAMA_WAIT_INTERVAL=2
+      elapsed=0
+      until curl -sf "$OLLAMA_READY_URL" >/dev/null; do
+        if [[ $elapsed -ge $OLLAMA_WAIT_SECONDS ]]; then
+          echo "Ollama did not become ready in ${OLLAMA_WAIT_SECONDS}s" >&2
+          break
+        fi
+        sleep "$OLLAMA_WAIT_INTERVAL"
+        elapsed=$((elapsed + OLLAMA_WAIT_INTERVAL))
+      done
+
+      if curl -sf "$OLLAMA_READY_URL" >/dev/null; then
+        ollama pull gemma3:1b
+      else
+        echo "Skipping ollama pull; API not ready" >&2
+      fi
+    fi
 
     if [[ ! -d "$REPO_DIR" ]]; then
       git clone https://github.com/pror993/alchemyst-devops-assignment.git "$REPO_DIR"
