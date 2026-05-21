@@ -222,7 +222,7 @@ resource "google_compute_instance" "inference_vm" {
 
     until curl -sf "$OLLAMA_READY_URL" >/dev/null; do
       if [[ $elapsed -ge $OLLAMA_WAIT_SECONDS ]]; then
-        echo "Ollama did not become ready in ${OLLAMA_WAIT_SECONDS}s" >&2
+        echo "Ollama did not become ready in $${OLLAMA_WAIT_SECONDS}s" >&2
         exit 1
       fi
       sleep "$OLLAMA_WAIT_INTERVAL"
@@ -264,7 +264,7 @@ EOF
       elapsed=0
       until curl -sf "$OLLAMA_READY_URL" >/dev/null; do
         if [[ $elapsed -ge $OLLAMA_WAIT_SECONDS ]]; then
-          echo "Ollama did not become ready in ${OLLAMA_WAIT_SECONDS}s" >&2
+          echo "Ollama did not become ready in $${OLLAMA_WAIT_SECONDS}s" >&2
           break
         fi
         sleep "$OLLAMA_WAIT_INTERVAL"
