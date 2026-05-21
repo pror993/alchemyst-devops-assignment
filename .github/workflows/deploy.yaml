@@ -1,0 +1,39 @@
+name: Terraform Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:    # lets you trigger it manually from GitHub UI too
+
+jobs:
+  terraform:
+    name: Deploy to GCP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -var="project_id=${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Print engine public IP
+        working-directory: terraform
+        run: terraform output engine_public_ip

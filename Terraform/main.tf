@@ -8,10 +8,12 @@ terraform {
 }
 
 provider "google" {
-  project = "project-923f66c6-2be4-4024-841"
+  project = var.project_id   # we'll use a variable now
   region  = "asia-south1"
   zone    = "asia-south1-a"
 }
+
+variable "project_id" {}     # passed in by GitHub Actions
 
 # VPC network
 resource "google_compute_network" "iii_network" {
