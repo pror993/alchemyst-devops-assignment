@@ -19,27 +19,28 @@ For more details regarding implementation, find docs here: https://iii.dev/docs/
 Distributed deployment of the `iii` worker mesh across three GCP VMs.
 
 ## Architecture
+```text
 Internet
-│
-▼ POST /v1/chat/completions (port 3111)
-┌─────────────────────────────────────────┐
-│           PRIVATE VPC (10.0.0.0/24)     │
-│                                         │
-│  ┌──────────────┐                       │
-│  │  engine-vm   │  10.0.0.2 (public IP) │
-│  │  iii engine  │  port 3111 + 49134    │
-│  └──────┬───────┘                       │
-│         │ WebSocket RPC (port 49134)    │
-│   ┌─────┴──────┐                        │
-│   │            │                        │
-│ ┌─▼──────┐  ┌──▼───────┐               │
-│ │caller  │  │inference │               │
-│ │-vm     │  │-vm       │               │
-│ │TypeScr │  │Python +  │               │
-│ │10.0.0.3│  │ollama    │               │
-│ └────────┘  │10.0.0.4  │               │
-│             └──────────┘               │
-└─────────────────────────────────────────┘
+  |
+  +--> POST /v1/chat/completions :3111
+        |
+        v
++------------------------------------------------------+
+|                PRIVATE VPC 10.0.0.0/24               |
+|                                                      |
+|  +--------------+         WebSocket RPC :49134       |
+|  | engine-vm    |---------------------------------+  |
+|  | iii engine   | 10.0.0.2 (public IP)            |  |
+|  +--------------+                                 |  |
+|                                                   |  |
+|   +--------------+          +------------------+  |  |
+|   | caller-vm    |          | inference-vm     |  |  |
+|   | TypeScript   |          | Python + Ollama  |  |  |
+|   | 10.0.0.3     |          | 10.0.0.4         |  |  |
+|   +--------------+          +------------------+  |  |
+|                                                      |
++------------------------------------------------------+
+```
 
 ## Request Flow
 
@@ -61,10 +62,12 @@ Note: both caller-vm and inference-vm must set `III_URL=ws://10.0.0.2:49134` to 
 ## Deploy with Terraform
 
 ```bash
-cd terraform
+cd Terraform
 terraform init
 terraform apply
 ```
+
+Terraform startup scripts install dependencies and start the engine, caller, and inference workers. The first boot can take a few minutes.
 
 ## Test
 
@@ -74,12 +77,14 @@ curl -X POST http://<engine-public-ip>:3111/v1/chat/completions \
   -d '{"messages": [{"role": "user", "content": "What is 2 + 2?"}]}'
 ```
 
-Expected response (character-indexed JSON):
+Expected response:
 ```json
-{"result": {"0":"2","1":" ","2":"+","3":" ","4":"2","5":" ","6":"=","7":" ","8":"4"}}
+{"result":{"result":"2 + 2 = 4\n","success":"You've connected two workers and they're interoperating seamlessly, now let's add a few more workers to expand this project's functionality."}}
 ```
 
 ## VM Setup (manual steps after Terraform)
+
+If you used the Terraform startup scripts, this section is only needed for manual recovery or restarts.
 
 ### engine-vm
 ```bash

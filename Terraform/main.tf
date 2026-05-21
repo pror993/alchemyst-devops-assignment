@@ -95,6 +95,31 @@ resource "google_compute_instance" "engine_vm" {
   zone         = "asia-south1-a"
   tags         = ["api-gateway"]
 
+  metadata_startup_script = <<-EOT
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    REPO_DIR="/opt/alchemyst-devops-assignment"
+    export PATH="$PATH:/root/.local/bin"
+
+    apt-get update
+    apt-get install -y curl git
+
+    if [[ ! -d "$REPO_DIR" ]]; then
+      git clone https://github.com/pror993/alchemyst-devops-assignment.git "$REPO_DIR"
+    else
+      git -C "$REPO_DIR" pull --ff-only || true
+    fi
+
+    if ! command -v iii >/dev/null 2>&1; then
+      curl -fsSL https://iii.dev/install.sh | sh
+    fi
+
+    if ! pgrep -f "iii --config" >/dev/null 2>&1; then
+      nohup iii --config "$REPO_DIR/config.yaml" > /var/log/iii-engine.log 2>&1 &
+    fi
+  EOT
+
   boot_disk {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2204-lts"
@@ -114,6 +139,36 @@ resource "google_compute_instance" "caller_vm" {
   machine_type = "e2-micro"
   zone         = "asia-south1-a"
 
+  metadata_startup_script = <<-EOT
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    REPO_DIR="/opt/alchemyst-devops-assignment"
+
+    apt-get update
+    apt-get install -y curl git ca-certificates
+
+    if ! command -v node >/dev/null 2>&1; then
+      curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      apt-get install -y nodejs
+    fi
+
+    if [[ ! -d "$REPO_DIR" ]]; then
+      git clone https://github.com/pror993/alchemyst-devops-assignment.git "$REPO_DIR"
+    else
+      git -C "$REPO_DIR" pull --ff-only || true
+    fi
+
+    cd "$REPO_DIR/workers/caller-worker"
+    if [[ ! -d node_modules ]]; then
+      npm install
+    fi
+
+    if ! pgrep -f "tsx src/worker.ts" >/dev/null 2>&1; then
+      nohup env III_URL=ws://10.0.0.2:49134 ./node_modules/.bin/tsx src/worker.ts > /var/log/caller-worker.log 2>&1 &
+    fi
+  EOT
+
   boot_disk {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2204-lts"
@@ -132,6 +187,43 @@ resource "google_compute_instance" "inference_vm" {
   name         = "inference-vm"
   machine_type = "e2-medium"
   zone         = "asia-south1-a"
+
+  metadata_startup_script = <<-EOT
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    REPO_DIR="/opt/alchemyst-devops-assignment"
+
+    apt-get update
+    apt-get install -y curl git python3 python3-pip
+
+    if ! command -v ollama >/dev/null 2>&1; then
+      curl -fsSL https://ollama.com/install.sh | sh
+    fi
+
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl enable --now ollama || true
+    fi
+
+    if ! pgrep -f "ollama serve" >/dev/null 2>&1; then
+      nohup ollama serve > /var/log/ollama.log 2>&1 &
+    fi
+
+    ollama pull gemma3:1b
+
+    if [[ ! -d "$REPO_DIR" ]]; then
+      git clone https://github.com/pror993/alchemyst-devops-assignment.git "$REPO_DIR"
+    else
+      git -C "$REPO_DIR" pull --ff-only || true
+    fi
+
+    cd "$REPO_DIR/workers/inference-worker"
+    pip3 install -r requirements.txt
+
+    if ! pgrep -f "inference_worker.py" >/dev/null 2>&1; then
+      nohup env III_URL=ws://10.0.0.2:49134 python3 inference_worker.py > /var/log/inference-worker.log 2>&1 &
+    fi
+  EOT
 
   boot_disk {
     initialize_params {
