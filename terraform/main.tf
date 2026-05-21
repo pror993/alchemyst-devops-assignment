@@ -5,6 +5,10 @@ terraform {
       version = "~> 5.0"
     }
   }
+  backend "gcs" {
+    bucket = "alchemyst-tf-state-alchemyst-devops-v2"   # your bucket name
+    prefix = "terraform/state"
+  }
 }
 
 provider "google" {
@@ -114,7 +118,7 @@ resource "google_compute_instance" "engine_vm" {
     fi
 
     if ! command -v iii >/dev/null 2>&1; then
-      curl -fsSL https://iii.dev/install.sh | sh
+      curl -fsSL https://install.iii.dev/iii/main/install.sh | sh
     fi
 
     if ! pgrep -f "iii --config" >/dev/null 2>&1; then

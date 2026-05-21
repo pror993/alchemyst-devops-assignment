@@ -3,7 +3,7 @@ name: Terraform Deploy
 on:
   push:
     branches: [main]
-  workflow_dispatch:    # lets you trigger it manually from GitHub UI too
+  workflow_dispatch:
 
 jobs:
   terraform:
