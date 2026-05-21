@@ -199,6 +199,8 @@ resource "google_compute_instance" "inference_vm" {
     #!/usr/bin/env bash
     set -euo pipefail
 
+    export HOME=/root
+
     REPO_DIR="/opt/alchemyst-devops-assignment"
 
     apt-get update
