@@ -118,6 +118,7 @@ resource "google_compute_instance" "engine_vm" {
     fi
 
     if ! command -v iii >/dev/null 2>&1; then
+      export HOME=/root
       curl -fsSL https://install.iii.dev/iii/main/install.sh | sh
     fi
 
